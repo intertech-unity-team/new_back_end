@@ -1,10 +1,10 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { MyProject} from "../typechain-types/contracts/MyProject.sol";
+import { MyProject} from "../typechain-types/contracts";
 import { MyProject__factory, Uni__factory, Usdt__factory } from "../typechain-types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Uni } from "../typechain-types/contracts/Uni.sol";
-import { Usdt } from "../typechain-types/contracts/Usdt.sol";
+import { Uni } from "../typechain-types/contracts";
+import { Usdt } from "../typechain-types/contracts";
 
 
 describe("MyProject", function(){
@@ -50,43 +50,17 @@ describe("MyProject", function(){
     firstChild = await myproject.connect(childSigner1).getChild();
     secondChild = await myproject.connect(childSigner2).getChild();
 
-    Uni.connect(signers[1]).transfer(signers[2].address,1000);
-    Usdt.connect(signers[1]).transfer(signers[3].address,500);
-
-    await Usdt.connect(signers[1]).approve(
-      myproject.address,
-      2500
-    );
-
-    await Usdt.connect(signers[3]).approve(
-      myproject.address,
-      500
-    );
-
     await Uni.connect(signers[1]).approve(
       myproject.address,
-      4000
-    );
-
-    await Uni.connect(signers[2]).approve(
-      myproject.address,
       1000
-    );
+    )
 
-    const UNI = ethers.utils.formatBytes32String('UNI');
-    await myproject.whitelistToken(
-      UNI,
+    await myproject.connect(signers[0]).allowToken(
+      'UNI',
       Uni.address
-    );
-
-    const USDT = ethers.utils.formatBytes32String('Usdt');
-    await myproject.whitelistToken(
-      USDT,
-      Usdt.address
-    );
+    )
 
   });
-
 
   it("Should deployed from the owner", async function () {
     expect(await myproject.getOwner()).to.equal(owner.address);
@@ -114,7 +88,7 @@ describe("MyProject", function(){
   it("Should delete a child ", async function () {
     await myproject.connect(parentSigner).delete_Child_With_ID(firstChild.childAddress);
     const myChild = await myproject.connect(childSigner1).getChild();
-    expect(myChild.childAddress).to.be.equal("0x0000000000000000000000000000000000000000"); 
+    expect(myChild.childAddress).to.be.equal(ethers.constants.AddressZero); 
   });
 
   it("Should check if parent can get his/her children via get_Children_Of_Parent", async function () {
@@ -168,28 +142,19 @@ describe("MyProject", function(){
     expect(myChild.name).to.be.equal("Updated");
   })
 
-  it('should mint unitoken to wallet 1', async function () {
-    expect(await Uni.balanceOf(signers[1].address)).to.equal(4000);
-  });
+  it("Should receivetokens" , async function(){
+    await myproject.connect(signers[1]).receiveTokens(9, 'UNI');
+    
+    expect(await myproject.tokenActions('UNI')).to.equal('9');
+    expect(await Uni.balanceOf(myproject.address)).to.equal('9');
+})
 
-  it('should transfer unitoken to wallet 2', async function () {
-    expect(await Uni.balanceOf(signers[2].address)).to.equal(1000);
-  })
-
-  it('should mint usdttoken to wallet 1', async function () {
-    expect(await Usdt.balanceOf(signers[1].address)).to.equal(2500);
-  })
-
-  it('should transfer usdttoken to wallet 3', async function () {
-    expect(await Usdt.balanceOf(signers[3].address)).to.equal(500);
-  })
-
-  // it('should deposit unitoken'), async function () {
-  //   const UNI = ethers.utils.formatBytes32String('Uni');
-  //   await myproject.connect(signers[1]).depositTokens(100,UNI);
-  //   expect(await myproject.accountBalances(signers[1].address, UNI)).to.be.equal(100);
-  // }
- 
-
+it("Should withdrawtoken" , async function(){
+    await myproject.connect(signers[1]).receiveTokens(20, 'UNI');
+    await myproject.connect(signers[0]).ownerWithdrawToken(2, 'UNI')
+    
+    expect(await Uni.balanceOf(myproject.address)).to.equal('18');
+    expect(await Uni.balanceOf(signers[0].address)).to.equal('2');
+})
 
 });

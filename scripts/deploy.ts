@@ -1,7 +1,6 @@
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-let owner:SignerWithAddress
 let signers:SignerWithAddress[]
 
 async function main() {
@@ -15,21 +14,6 @@ async function main() {
 
   const Usdt= await ethers.getContractFactory("Usdt", signers[1]);
   const usdt = await Usdt.deploy();
-
-  await myproject.whitelistToken(
-    ethers.utils.formatBytes32String('Uni'),
-    uni.address
-  );
-
-  await myproject.whitelistToken(
-    ethers.utils.formatBytes32String('Usdt'),
-    usdt.address
-  );
-
-  await myproject.whitelistToken(
-    ethers.utils.formatBytes32String('Eth'),
-    "0xd8d49576c7D5e5878AA9e2cf5DacbF95c178922D"
-  );
 
 
   console.log("Myproject deployed to:", myproject.address, "by" , signers[0].address);

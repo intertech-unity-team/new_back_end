@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MyProject {
     address owner;
@@ -173,28 +173,26 @@ contract MyProject {
         } 
     }
 
-    // address our symbols to the address which we have deployed our contract
-    mapping(bytes32 => address) public whitelistedTokens;
-    // holds the balances of tokens deposited by each address
-    mapping(address => mapping(bytes32=>uint256)) public accountBalances;
+    
+    mapping(string => uint) public tokenActions;
+    mapping(string => address) public allowedTokens;
 
-    function whitelistToken(bytes32 symbol, address tokenAddress) external onlyOwner {
-        whitelistedTokens[symbol] = tokenAddress;
+    function allowToken(string calldata symbol, address tokenAdress) external onlyOwner {
+        allowedTokens[symbol] = tokenAdress;
     }
 
-    function getWhitelistedTokenAddresses(bytes32 token) external view returns(address) {
-        return whitelistedTokens[token];
+    function receiveTokens(uint amount, string calldata symbol) external {
+        require(allowedTokens[symbol] != address(0), "This token is not allowed");
+
+        IERC20(allowedTokens[symbol]).transferFrom(msg.sender, address(this), amount);
+        tokenActions[symbol] += amount;
     }
 
-    function depositTokens(uint256 amount, bytes32 symbol) external {
-        accountBalances[msg.sender][symbol] += amount;
-        ERC20(whitelistedTokens[symbol]).transferFrom(msg.sender, address(this), amount);
+    function ownerWithdrawToken(uint amount, string calldata symbol) external onlyOwner {
+        require(tokenActions[symbol] >= amount, "Insufficient funds");
+
+        IERC20(allowedTokens[symbol]).transfer(msg.sender, amount);
+        tokenActions[symbol] -= amount;
     }
 
-    function withdrawTokens(uint256 amount, bytes32 symbol) external {
-        require(accountBalances[msg.sender][symbol] >= amount, "Insufficient funds");
-
-        accountBalances[msg.sender][symbol] -= amount;
-        ERC20(whitelistedTokens[symbol]).transfer(msg.sender, amount);
-    }
 }
